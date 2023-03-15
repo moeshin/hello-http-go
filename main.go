@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -50,6 +51,12 @@ func handle(w http.ResponseWriter, r *http.Request) {
 			w.Header()
 			write(fmt.Sprintf("%s: %s\n", name, value))
 		}
+	}
+
+	write("\n")
+	_, err := io.Copy(w, r.Body)
+	if err != nil {
+		log.Println("Error copy request body to response", err)
 	}
 }
 
