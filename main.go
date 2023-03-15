@@ -13,6 +13,13 @@ import (
 var allowedMethods, disallowedMethods map[string]bool
 
 func handle(w http.ResponseWriter, r *http.Request) {
+	write := func(s string) {
+		_, err := w.Write([]byte(s))
+		if err != nil {
+			log.Println("Error writing to response", err)
+		}
+	}
+
 	startLine := fmt.Sprintf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
 	log.Print(startLine)
 	if (disallowedMethods != nil && disallowedMethods[r.Method]) ||
@@ -20,7 +27,13 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	_, _ = w.Write([]byte("Hello: " + startLine))
+	write("Hello Http\n")
+	write(startLine)
+
+	if r.ProtoAtLeast(1, 1) {
+		write(fmt.Sprintf("Host: %s\n", r.Host))
+	}
+
 	var names []string
 	for name := range r.Header {
 		names = append(names, name)
@@ -30,7 +43,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		values := r.Header[name]
 		for _, value := range values {
 			w.Header()
-			_, _ = w.Write([]byte(fmt.Sprintf("%s: %s\n", name, value)))
+			write(fmt.Sprintf("%s: %s\n", name, value))
 		}
 	}
 }
