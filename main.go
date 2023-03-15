@@ -55,7 +55,7 @@ func main() {
 	var host, aAllowedMethods, aDisallowedMethods string
 	var port int
 	var v4, v6 bool
-	flag.StringVar(&host, "h", "localhost", "Listen host.")
+	flag.StringVar(&host, "h", "127.0.0.1", "Listen host.")
 	flag.IntVar(&port, "p", 8080, "Listen port. If 0, random.")
 	flag.BoolVar(&v4, "4", false, "Listen all IPv4.")
 	flag.BoolVar(&v6, "6", false, "Listen all IPv6.")
