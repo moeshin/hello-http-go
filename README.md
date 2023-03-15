@@ -17,7 +17,7 @@ Usage of ./hello-http:
   -d string
         Disallowed methods.
   -h string
-        Listen host. (default "localhost")
+        Listen host. (default "127.0.0.1")
   -m string
         Allowed methods.
   -p int
