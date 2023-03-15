@@ -32,7 +32,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write("Hello Http\n")
+	write("Hello HTTP\n")
 	write(startLine)
 
 	if r.ProtoAtLeast(1, 1) {
