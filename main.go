@@ -27,6 +27,11 @@ func handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+
+	if r.Method == "HEAD" {
+		return
+	}
+
 	write("Hello Http\n")
 	write(startLine)
 
