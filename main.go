@@ -10,25 +10,17 @@ import (
 	"strings"
 )
 
-type HelloHttp struct {
-	Host              string
-	Port              int
-	port              int
-	IPv4              bool
-	IPv6              bool
-	AllowedMethods    map[string]bool
-	DisallowedMethods map[string]bool
-	listener          net.Listener
-}
+var allowedMethods, disallowedMethods map[string]bool
 
-func (h *HelloHttp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Printf("%s: %s", r.Method, r.URL)
-	if !(h.AllowedMethods != nil && h.AllowedMethods[r.Method]) &&
-		(h.DisallowedMethods != nil && h.DisallowedMethods[r.Method]) {
+func handle(w http.ResponseWriter, r *http.Request) {
+	startLine := fmt.Sprintf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
+	log.Print(startLine)
+	if (disallowedMethods != nil && disallowedMethods[r.Method]) ||
+		(allowedMethods != nil && !allowedMethods[r.Method]) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	_, _ = w.Write([]byte(fmt.Sprintf("Hello %s: %s\n", r.Method, r.RequestURI)))
+	_, _ = w.Write([]byte("Hello: " + startLine))
 	var names []string
 	for name := range r.Header {
 		names = append(names, name)
@@ -43,38 +35,7 @@ func (h *HelloHttp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HelloHttp) GetPort() int {
-	if h.Port != 0 {
-		return h.Port
-	}
-	return h.port
-}
-
-func (h *HelloHttp) Listen() error {
-	var network string
-	if h.IPv4 == h.IPv6 {
-		network = "tcp"
-	} else if h.IPv4 {
-		network = "tcp4"
-	} else {
-		network = "tcp6"
-	}
-	listener, err := net.Listen(network, fmt.Sprintf("%s:%d", h.Host, h.Port))
-	if err != nil {
-		return err
-	}
-	h.listener = listener
-	if h.Port == 0 {
-		h.port = h.listener.Addr().(*net.TCPAddr).Port
-	}
-	return nil
-}
-
-func (h *HelloHttp) Serve() error {
-	return http.Serve(h.listener, h)
-}
-
-func ParseMethods(str string) map[string]bool {
+func parseMethods(str string) map[string]bool {
 	m := make(map[string]bool)
 	for _, s := range strings.Split(str, ",") {
 		s = strings.TrimSpace(s)
@@ -88,35 +49,46 @@ func ParseMethods(str string) map[string]bool {
 }
 
 func main() {
-	host := flag.String("h", "", "Listen host. Default all host.")
-	port := flag.Int("p", 8080, "Listen port. If 0, random.")
-	v4 := flag.Bool("4", false, "Listen IPv4.")
-	v6 := flag.Bool("6", false, "Listen IPv6.")
-	allowedMethods := flag.String("m", "", "Allowed methods.")
-	disallowedMethods := flag.String("d", "", "Disallowed methods.")
+	var host, aAllowedMethods, aDisallowedMethods string
+	var port int
+	var v4, v6 bool
+	flag.StringVar(&host, "h", "localhost", "Listen host.")
+	flag.IntVar(&port, "p", 8080, "Listen port. If 0, random.")
+	flag.BoolVar(&v4, "4", false, "Listen all IPv4.")
+	flag.BoolVar(&v6, "6", false, "Listen all IPv6.")
+	flag.StringVar(&aAllowedMethods, "m", "", "Allowed methods.")
+	flag.StringVar(&aDisallowedMethods, "d", "", "Disallowed methods.")
 
 	flag.Parse()
 
-	hh := HelloHttp{
-		Host:              *host,
-		Port:              *port,
-		IPv4:              *v4,
-		IPv6:              *v6,
-		AllowedMethods:    ParseMethods(*allowedMethods),
-		DisallowedMethods: ParseMethods(*disallowedMethods),
+	allowedMethods = parseMethods(aAllowedMethods)
+	disallowedMethods = parseMethods(aDisallowedMethods)
+
+	var network string
+	if v4 == v6 {
+		network = "tcp"
+	} else if v4 {
+		network = "tcp4"
+	} else {
+		network = "tcp6"
 	}
-	err := hh.Listen()
+	if v4 || v6 {
+		host = ""
+	}
+
+	listener, err := net.Listen(network, fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic(err)
 	}
 
-	h := hh.Host
-	if h == "" {
-		h = "all"
+	addr := listener.Addr()
+	log.Println("Listening", addr.Network(), addr.String())
+	if port == 0 {
+		port = listener.Addr().(*net.TCPAddr).Port
 	}
-	log.Printf("Listen host: %s, port: %d", h, hh.GetPort())
 
-	err = hh.Serve()
+	http.HandleFunc("/", handle)
+	err = http.Serve(listener, nil)
 	if err != nil {
 		panic(err)
 	}
