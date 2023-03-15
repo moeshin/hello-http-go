@@ -45,7 +45,10 @@ func parseMethods(str string) map[string]bool {
 		s = strings.ToUpper(s)
 		m[s] = true
 	}
-	return m
+	if len(m) > 0 {
+		return m
+	}
+	return nil
 }
 
 func main() {
