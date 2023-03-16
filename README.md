@@ -4,14 +4,6 @@ Build an HTTP server based on the standard library and respond to the request me
 
 ## Usage
 
-```shell
-# Build
-go build .
-
-# Get help
-./hello-http --help
-```
-
 ```text
 Usage of ./hello-http:
   -4    Listen all IPv4.
@@ -26,23 +18,25 @@ Usage of ./hello-http:
         Allowed methods.
 ```
 
---------
-
-Start
+Run
 
 ```shell
 ./hello-http
 ```
 
+Hello HTTP output
+
 ```text
 Listening tcp 127.0.0.1:8080
 ```
 
-Test by `curl`
+Test with cURL
 
 ```shell
 curl http://127.0.0.1:8080
 ```
+
+cURL output
 
 ```text
 Hello HTTP
@@ -51,9 +45,10 @@ GET / HTTP/1.1
 Host: 127.0.0.1:8080
 Accept: */*
 User-Agent: curl/7.74.0
+
 ```
 
-Log out
+Hello HTTP output
 
 ```text
 GET / HTTP/1.1
