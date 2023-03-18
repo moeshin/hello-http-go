@@ -20,8 +20,10 @@ Usage of ./hello-http:
          (default 8080)
   -d string
         Disallowed methods.
+         (format: <method>[,<methods>...])
   -m string
         Allowed methods.
+         (format: <method>[,<methods>...])
 ```
 
 Run

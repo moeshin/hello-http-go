@@ -13,6 +13,8 @@ import (
 
 var allowedMethods, disallowedMethods map[string]bool
 
+const formatMethods = "(format: <method>[,<methods>...])"
+
 func handle(w http.ResponseWriter, r *http.Request) {
 	write := func(s string) {
 		_, err := w.Write([]byte(s))
@@ -87,8 +89,8 @@ If * will listen all IPv4 and IPv6.
 	flag.IntVar(&port, "p", 8080, `Listen port.
 If 0, random.
 `)
-	flag.StringVar(&aAllowedMethods, "m", "", "Allowed methods.")
-	flag.StringVar(&aDisallowedMethods, "d", "", "Disallowed methods.")
+	flag.StringVar(&aAllowedMethods, "m", "", "Allowed methods.\n "+formatMethods)
+	flag.StringVar(&aDisallowedMethods, "d", "", "Disallowed methods.\n "+formatMethods)
 
 	flag.Parse()
 
