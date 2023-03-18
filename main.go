@@ -79,11 +79,14 @@ func parseMethods(str string) map[string]bool {
 func main() {
 	var host, aAllowedMethods, aDisallowedMethods string
 	var port int
-	var v4, v6 bool
-	flag.StringVar(&host, "h", "127.0.0.1", "Listen host.")
-	flag.IntVar(&port, "p", 8080, "Listen port. If 0, random.")
-	flag.BoolVar(&v4, "4", false, "Listen all IPv4.")
-	flag.BoolVar(&v6, "6", false, "Listen all IPv6.")
+	flag.StringVar(&host, "h", "*", `Listen host.
+If 0.0.0.0 will only listen all IPv4.
+If [::] will only listen all IPv6.
+If * will listen all IPv4 and IPv6.
+`)
+	flag.IntVar(&port, "p", 8080, `Listen port.
+If 0, random.
+`)
 	flag.StringVar(&aAllowedMethods, "m", "", "Allowed methods.")
 	flag.StringVar(&aDisallowedMethods, "d", "", "Disallowed methods.")
 
@@ -93,15 +96,16 @@ func main() {
 	disallowedMethods = parseMethods(aDisallowedMethods)
 
 	var network string
-	if v4 == v6 {
-		network = "tcp"
-	} else if v4 {
+	switch host {
+	case "0.0.0.0":
 		network = "tcp4"
-	} else {
+	case "[::]":
 		network = "tcp6"
-	}
-	if v4 || v6 {
+	case "*":
 		host = ""
+		fallthrough
+	default:
+		network = "tcp"
 	}
 
 	listener, err := net.Listen(network, fmt.Sprintf("%s:%d", host, port))

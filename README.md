@@ -9,9 +9,15 @@ Usage of ./hello-http:
   -4    Listen all IPv4.
   -6    Listen all IPv6.
   -h string
-        Listen host. (default "127.0.0.1")
+        Listen host.
+        If 0.0.0.0 will only listen all IPv4.
+        If [::] will only listen all IPv6.
+        If * will listen all IPv4 and IPv6.
+         (default "*")
   -p int
-        Listen port. If 0, random. (default 8080)
+        Listen port.
+        If 0, random.
+         (default 8080)
   -d string
         Disallowed methods.
   -m string
