@@ -6,8 +6,6 @@ Build an HTTP server based on the standard library and respond to the request me
 
 ```text
 Usage of ./hello-http:
-  -4    Listen all IPv4.
-  -6    Listen all IPv6.
   -h string
         Listen host.
         If 0.0.0.0 will only listen all IPv4.
