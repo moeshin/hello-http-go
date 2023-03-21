@@ -10,7 +10,7 @@ Usage of ./hello-http:
         Listen host.
         If 0.0.0.0 will only listen all IPv4.
         If [::] will only listen all IPv6.
-        If * will listen all IPv4 and IPv6.
+        If :: will listen all IPv4 and IPv6.
          (default "*")
   -p int
         Listen port.

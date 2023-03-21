@@ -84,7 +84,7 @@ func main() {
 	flag.StringVar(&host, "h", "*", `Listen host.
 If 0.0.0.0 will only listen all IPv4.
 If [::] will only listen all IPv6.
-If * will listen all IPv4 and IPv6.
+If :: will listen all IPv4 and IPv6.
 `)
 	flag.IntVar(&port, "p", 8080, `Listen port.
 If 0, random.
@@ -103,7 +103,7 @@ If 0, random.
 		network = "tcp4"
 	case "[::]":
 		network = "tcp6"
-	case "*":
+	case "::":
 		host = ""
 		fallthrough
 	default:
