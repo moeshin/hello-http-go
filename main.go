@@ -13,7 +13,7 @@ import (
 
 var allowedMethods, disallowedMethods map[string]bool
 
-const formatMethods = "(format: <method>[,<methods>...])"
+const formatMethods = "(format: <method>[,<method>...])"
 
 func handle(w http.ResponseWriter, r *http.Request) {
 	write := func(s string) {
