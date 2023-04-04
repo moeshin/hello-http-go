@@ -15,31 +15,65 @@ var allowedMethods, disallowedMethods map[string]bool
 
 const formatMethods = "(format: <method>[,<method>...])"
 
-func handle(w http.ResponseWriter, r *http.Request) {
-	write := func(s string) {
-		_, err := w.Write([]byte(s))
-		if err != nil {
-			log.Println("Error writing to response", err)
-		}
-	}
+type HttpResponseWriter struct {
+	http.ResponseWriter
+}
 
-	startLine := fmt.Sprintf("%s %s %s\n", r.Method, r.RequestURI, r.Proto)
-	log.Print(startLine)
+func (w *HttpResponseWriter) WriteNewLine() error {
+	_, err := w.Write([]byte{'\r', '\n'})
+	return err
+}
+
+func (w *HttpResponseWriter) WriteString(s string) error {
+	_, err := w.Write([]byte(s))
+	return err
+}
+
+func (w *HttpResponseWriter) WriteHeaderLine(name string, value string) error {
+	err := w.WriteString(name)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write([]byte{':', ' '})
+	err = w.WriteString(value)
+	if err != nil {
+		return err
+	}
+	return w.WriteNewLine()
+}
+
+func handleRequest(w *HttpResponseWriter, r *http.Request) error {
+	startLine := fmt.Sprintf("%s %s %s", r.Method, r.RequestURI, r.Proto)
+	log.Println(startLine)
 	if (disallowedMethods != nil && disallowedMethods[r.Method]) ||
 		(allowedMethods != nil && !allowedMethods[r.Method]) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
+		return nil
 	}
 
 	if r.Method == "HEAD" {
-		return
+		return nil
 	}
 
-	write("Hello HTTP\n\n")
-	write(startLine)
+	err := w.WriteString("Hello HTTP\n\n")
+	if err != nil {
+		return err
+	}
+
+	err = w.WriteString(startLine)
+	if err != nil {
+		return err
+	}
+	err = w.WriteNewLine()
+	if err != nil {
+		return err
+	}
 
 	if r.ProtoAtLeast(1, 1) {
-		write(fmt.Sprintf("Host: %s\n", r.Host))
+		err = w.WriteHeaderLine("Host", r.Host)
+		if err != nil {
+			return err
+		}
 	}
 
 	var names []string
@@ -50,15 +84,25 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	for _, name := range names {
 		values := r.Header[name]
 		for _, value := range values {
-			w.Header()
-			write(fmt.Sprintf("%s: %s\n", name, value))
+			err = w.WriteHeaderLine(name, value)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	write("\n")
-	_, err := io.Copy(w, r.Body)
+	err = w.WriteNewLine()
 	if err != nil {
-		log.Println("Error copy request body to response", err)
+		return err
+	}
+	_, err = io.Copy(w, r.Body)
+	return err
+}
+
+func httpHandler(w http.ResponseWriter, r *http.Request) {
+	err := handleRequest(&HttpResponseWriter{w}, r)
+	if err != nil {
+		log.Println("Error handle request:", err)
 	}
 }
 
@@ -121,7 +165,7 @@ If 0, random.
 		port = listener.Addr().(*net.TCPAddr).Port
 	}
 
-	http.HandleFunc("/", handle)
+	http.HandleFunc("/", httpHandler)
 	err = http.Serve(listener, nil)
 	if err != nil {
 		panic(err)
