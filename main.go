@@ -125,7 +125,7 @@ func parseMethods(str string) map[string]bool {
 func main() {
 	var host, aAllowedMethods, aDisallowedMethods string
 	var port int
-	flag.StringVar(&host, "h", "*", `Listen host.
+	flag.StringVar(&host, "h", "127.0.0.1", `Listen host.
 If 0.0.0.0 will only listen all IPv4.
 If [::] will only listen all IPv6.
 If :: will listen all IPv4 and IPv6.
