@@ -1,0 +1,106 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: 386
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: 386
+          - goos: windows
+            goarch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20'
+
+      - name: Build
+        id: build
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          base_name="hello-http-$(git rev-parse --short HEAD)-${{ matrix.goos }}-${{ matrix.goarch }}"
+          echo "base_name=$base_name" >> "$GITHUB_OUTPUT"
+          bin_name="$base_name"
+          if [ "${{ matrix.goos }}" == "windows" ]; then
+            bin_name="$bin_name.exe"
+          fi
+          go build -o "bin/$bin_name" .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.base_name }}
+          path: bin/
+
+  prerelease:
+    name: Prerelease
+    permissions: write-all
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: bin/
+
+      - name: Delete prerelease assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: prerelease-${{ github.ref_name }}
+          deleteOnlyFromDrafts: false
+
+      - name: Get commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Update git tag
+        run: |
+          tag_name="prerelease-${{ github.ref_name }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -f "$tag_name"
+          git push -f origin "$tag_name"
+
+      - name: Prerelease
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          name: 'Prerelease: ${{ github.ref_name }}'
+          tag_name: prerelease-${{ github.ref_name }}
+          body: "Build for commit ${{ steps.commit.outputs.short_sha }}"
+          files: |
+            bin/*
