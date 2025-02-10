@@ -51,7 +51,7 @@ jobs:
           if [ "${{ matrix.goos }}" == "windows" ]; then
             bin_name="$bin_name.exe"
           fi
-          go build -o "bin/$bin_name" .
+          go build -v -o "bin/$bin_name" .
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
