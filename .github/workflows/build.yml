@@ -3,9 +3,29 @@ name: Build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.common.outputs.short_sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set common outputs
+        id: common
+        run: |
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -29,9 +49,14 @@ jobs:
           - goos: windows
             goarch: arm64
 
+    needs:
+      - prepare
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -45,7 +70,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
-          base_name="hello-http-$(git rev-parse --short HEAD)-${{ matrix.goos }}-${{ matrix.goarch }}"
+          base_name="hello-http-${{ needs.prepare.outputs.short_sha }}-${{ matrix.goos }}-${{ matrix.goarch }}"
           echo "base_name=$base_name" >> "$GITHUB_OUTPUT"
           bin_name="$base_name"
           if [ "${{ matrix.goos }}" == "windows" ]; then
@@ -62,14 +87,11 @@ jobs:
   prerelease:
     name: Prerelease
     permissions: write-all
-    needs: [build]
+    needs:
+      - prepare
+      - build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -83,24 +105,11 @@ jobs:
           tag: prerelease-${{ github.ref_name }}
           deleteOnlyFromDrafts: false
 
-      - name: Get commit hash
-        id: commit
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Update git tag
-        run: |
-          tag_name="prerelease-${{ github.ref_name }}"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git tag -f "$tag_name"
-          git push -f origin "$tag_name"
-
       - name: Prerelease
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
           name: 'Prerelease: ${{ github.ref_name }}'
           tag_name: prerelease-${{ github.ref_name }}
-          body: "Build for commit ${{ steps.commit.outputs.short_sha }}"
-          files: |
-            bin/*
+          body: "Build for commit ${{ needs.prepare.outputs.short_sha }}"
+          files: bin/*
